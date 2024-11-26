@@ -19,7 +19,7 @@ class WebSockerServer {
     static let instance = WebSockerServer()
     let server = HttpServer()
     
-    var rpiSession: WebSocketSession?
+    var espFireplace: WebSocketSession?
     var iPhoneSession: WebSocketSession?
     
     func setupWithRoutesInfos(routeInfos: RouteInfos) {
