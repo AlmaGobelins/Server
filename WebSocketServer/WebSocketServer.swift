@@ -20,7 +20,7 @@ class WebSockerServer {
     let server = HttpServer()
     
     var espFireplace: WebSocketSession?
-    var iPhoneSession: WebSocketSession?
+    var phoneMixer: WebSocketSession?
     
     func setupWithRoutesInfos(routeInfos: RouteInfos) {
         server["/" + routeInfos.routeName] = websocket(
