@@ -14,8 +14,7 @@ struct RouteInfos {
     var dataCode: (WebSocketSession, Data) -> ()
 }
 
-class WebSockerServer {
-    
+@Observable class WebSockerServer {
     static let instance = WebSockerServer()
     let server = HttpServer()
     

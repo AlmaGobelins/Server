@@ -22,7 +22,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espFireplace", 
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace", textCode: { session, receivedText in
-    print("received message frm fireplace : \(receivedText)")
+    print("Fireplce phone - msg reçu : \(receivedText)")
     guard let espSession = serverWS.espFireplace else { session.writeText("Esp Fireplace not connected"); return }
     espSession.writeText(receivedText)
 }, dataCode: { session, receivedData in
@@ -30,12 +30,15 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace"
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneMixer", textCode: { session, receivedText in
+    print("currentSession  : \(session)")
+    session.writeText("Connected to route : 'phoneMixer'")
     serverWS.phoneMixer = session
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espMixer", textCode: { session, receivedText in
+    print("Mixer esp - msg reçu : \(receivedText)")
     guard let pMixerSession = serverWS.phoneMixer else { session.writeText("Phone mixer not connected"); return }
     pMixerSession.writeText(receivedText)
 }, dataCode: { session, receivedData in
