@@ -120,16 +120,22 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espConnect", te
 }))
 
 // Route "rpiConnect"
-/*
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "rpiConnect", textCode: { session, receivedText in
-    serverWS.rpiSession = session
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    serverWS.espSession = session
+    allSessions["rpiConnect"] = session
+    missedPingCounts["rpiConnect"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à Raspberry Pi
-    sendConnectionMessage(to: session, for: "Raspberry Pi")
-
-    print("Raspberry connected")
-    print("Rpi Received Text \(receivedText)")
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["rpiConnect"] = 0
+        return
+    }
+    
+    // Envoi du message de connexion
+    sendConnectionMessage(to: session, for: "rpiConnect")
+    
+    // Mise à jour immédiate de la télécommande
+    notifyTelecommandeAboutSessionChange()
     
     if let espSess = serverWS.espSession {
         if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) == "good" {
@@ -141,16 +147,22 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "rpiConnect", te
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "readRFID", textCode: { session, receivedText in
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    serverWS.espSession = session
+    allSessions["readRFID"] = session
+    missedPingCounts["readRFID"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à la session
-    sendConnectionMessage(to: session, for: "readRFID")
-
-    // Démarrer le timer si c'est la première connexion
-    if allSessions.count == 1 {
-        startPingTimer()
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["readRFID"] = 0
+        return
     }
-
+    
+    // Envoi du message de connexion
+    sendConnectionMessage(to: session, for: "readRFID")
+    
+    // Mise à jour immédiate de la télécommande
+    notifyTelecommandeAboutSessionChange()
+    
     if let rpiSess = serverWS.rpiSession {
         rpiSess.writeText("read")
         print("Read RFID --> Received Text:\(receivedText)")
@@ -164,16 +176,21 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "readRFID", text
 
 // Route "allumerFeu"
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "allumerFeu", textCode: { session, receivedText in
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    serverWS.espSession = session
+    allSessions["allumerFeu"] = session
+    missedPingCounts["allumerFeu"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à la session
-    sendConnectionMessage(to: session, for: "allumerFeu")
-
-    // Démarrer le timer si c'est la première connexion
-    if allSessions.count == 1 {
-        startPingTimer()
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["allumerFeu"] = 0
+        return
     }
-
+    
+    // Envoi du message de connexion
+    sendConnectionMessage(to: session, for: "allumerFeu")
+    
+    // Mise à jour immédiate de la télécommande
+    notifyTelecommandeAboutSessionChange()
     if let espSess = serverWS.espSession {
         espSess.writeText("allumer")
     } else {
@@ -186,32 +203,37 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "allumerFeu", te
 
 // Route "espFireplace"
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espFireplace", textCode: { session, receivedText in
-    serverWS.espFireplace = session
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    serverWS.espSession = session
+    allSessions["allumerFeu"] = session
+    missedPingCounts["allumerFeu"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à la session
-    sendConnectionMessage(to: session, for: "espFireplace")
-
-    // Démarrer le timer si c'est la première connexion
-    if allSessions.count == 1 {
-        startPingTimer()
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["allumerFeu"] = 0
+        return
     }
+    
+    // Envoi du message de connexion
+    sendConnectionMessage(to: session, for: "allumerFeu")
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))
 
 // Route "phoneFireplace"
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace", textCode: { session, receivedText in
-    print("Fireplace phone - msg reçu : \(receivedText)")
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    serverWS.espSession = session
+    allSessions["phoneFireplace"] = session
+    missedPingCounts["phoneFireplace"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à la session
-    sendConnectionMessage(to: session, for: "phoneFireplace")
-
-    // Démarrer le timer si c'est la première connexion
-    if allSessions.count == 1 {
-        startPingTimer()
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["phoneFireplace"] = 0
+        return
     }
+    
+    // Envoi du message de connexion
+    sendConnectionMessage(to: session, for: "phoneFireplace")
+    // Démarrer le timer si c'est la première connexion
     
     guard let espSession = serverWS.espFireplace else {
         session.writeText("Esp Fireplace not connected")
@@ -222,14 +244,21 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace"
     print(receivedData)
 }))
 
+/** ALL ROUTES FOR MIXER INTERACTIONS **/
+
 // Route "phoneMixer"
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneMixer", textCode: { session, receivedText in
-    print("currentSession  : \(session)")
-    session.writeText("Connected to route : 'phoneMixer'")
-    serverWS.phoneMixer = session
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    serverWS.espSession = session
+    allSessions["phoneMixer"] = session
+    missedPingCounts["phoneMixer"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à la session
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["phoneMixer"] = 0
+        return
+    }
+    
+    // Envoi du message de connexion
     sendConnectionMessage(to: session, for: "phoneMixer")
 
     // Démarrer le timer si c'est la première connexion
@@ -242,16 +271,18 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneMixer", te
 
 // Route "espMixer"
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espMixer", textCode: { session, receivedText in
-    print("Mixer esp - msg reçu : \(receivedText)")
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    serverWS.espSession = session
+    allSessions["espMixer"] = session
+    missedPingCounts["espMixer"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à la session
-    sendConnectionMessage(to: session, for: "espMixer")
-
-    // Démarrer le timer si c'est la première connexion
-    if allSessions.count == 1 {
-        startPingTimer()
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["espMixer"] = 0
+        return
     }
+    
+    // Envoi du message de connexion
+    sendConnectionMessage(to: session, for: "espMixer")
     
     guard let pMixerSession = serverWS.phoneMixer else {
         session.writeText("Phone mixer not connected")
@@ -261,7 +292,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espMixer", text
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))
-*/
+
 serverWS.start()
 
 RunLoop.main.run()
