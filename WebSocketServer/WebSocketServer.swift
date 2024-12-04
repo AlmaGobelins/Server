@@ -1,28 +1,56 @@
-//
-//  WebSocketServer.swift
-//  WebSocketServer
-//
-//  Created by digital on 22/10/2024.
-//
-
-import SwiftUI
 import Swifter
+import SwiftUI
 
 struct RouteInfos {
     var routeName: String
-    var textCode: (WebSocketSession, String) -> Void
-    var dataCode: (WebSocketSession, Data) -> Void
+    var textCode: (WebSocketSession, String) -> ()
+    var dataCode: (WebSocketSession, Data) -> ()
 }
 
-@Observable class WebSockerServer {
+class WebSockerServer: ObservableObject {
     static let instance = WebSockerServer()
     let server = HttpServer()
     
+    // Sessions pour chaque périphérique
     var telecommandeSession: WebSocketSession?
     var espSession: WebSocketSession?
     var rpiSession: WebSocketSession?
     var espFireplace: WebSocketSession?
     var phoneMixer: WebSocketSession?
+    
+    // Dictionnaire des états des périphériques
+    @Published var devicesStatus: [String: Bool] = [String:Bool]()
+    
+    // Démarrer la mise à jour régulière des états
+    func startStatusUpdates() {
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            self.updateDevicesStatus()
+        }
+    }
+    
+    // Mettre à jour les états des périphériques
+    func updateDevicesStatus() {
+        self.devicesStatus = [
+            "telecommande": telecommandeSession != nil,
+            "espConnect": espSession != nil,
+            "rpiConnect": rpiSession != nil,
+            "espFireplace": espFireplace != nil,
+            "phoneMixer": phoneMixer != nil
+        ]
+        
+        // Informer tous les clients des mises à jour
+        notifyClients()
+    }
+    
+    // Notifier les clients connectés avec les états mis à jour
+    func notifyClients() {
+        let devicesStatusString = devicesStatus.map { "\($0.key): \($0.value ? "Connecté" : "Déconnecté")" }
+            .joined(separator: "\n")
+        
+        for session in [telecommandeSession, espSession, rpiSession, espFireplace, phoneMixer] {
+            session?.writeText(devicesStatusString)
+        }
+    }
     
     func setupWithRoutesInfos(routeInfos: RouteInfos) {
         server["/" + routeInfos.routeName] = websocket(
@@ -34,68 +62,44 @@ struct RouteInfos {
             },
             connected: { session in
                 print("Client connected to route: /\(routeInfos.routeName)")
+                // On met à jour le statut du périphérique correspondant
+                self.updateDeviceStatus(forRoute: routeInfos.routeName, isConnected: true)
             },
             disconnected: { session in
-                print(
-                    "Client disconnected from route: /\(routeInfos.routeName)")
+                print("Client disconnected from route: /\(routeInfos.routeName)")
+                // On met à jour le statut du périphérique correspondant
+                self.updateDeviceStatus(forRoute: routeInfos.routeName, isConnected: false)
             }
         )
+    }
+    
+    func updateDeviceStatus(forRoute route: String, isConnected: Bool) {
+        switch route {
+        case "telecommande":
+            telecommandeSession = isConnected ? telecommandeSession : nil
+        case "espConnect":
+            espSession = isConnected ? espSession : nil
+        case "rpiConnect":
+            rpiSession = isConnected ? rpiSession : nil
+        case "espFireplace":
+            espFireplace = isConnected ? espFireplace : nil
+        case "phoneMixer":
+            phoneMixer = isConnected ? phoneMixer : nil
+        default:
+            break
+        }
+        
+        // Mise à jour des états des périphériques
+        updateDevicesStatus()
     }
     
     func start() {
         do {
             try server.start()
-            print(
-                "Server has started (port = \(try server.port())). Try to connect now..."
-            )
+            print("Server has started (port = \(try server.port())). Try to connect now...")
+            startStatusUpdates()
         } catch {
             print("Server failed to start: \(error.localizedDescription)")
-        }
-    }
-}
-
-extension WebSocketSession {
-    var id: String {
-        return "\(ObjectIdentifier(self).hashValue)" // Identifiant unique basé sur l'objet en mémoire
-    }
-    
-    /// Sérialise et envoie une liste de sessions sous forme de JSON à la session actuelle.
-    /// - Parameter sessions: Dictionnaire des sessions actives avec clé `String` et valeur `WebSocketSession`.
-    func writeSessionsList(_ sessions: [String: WebSocketSession]) {
-        // Crée un dictionnaire contenant les identifiants et leurs descriptions
-        let sessionInfo = sessions.mapValues { $0.id }
-        
-        do {
-            // Sérialise en JSON
-            let jsonData = try JSONSerialization.data(
-                withJSONObject: sessionInfo, options: []
-            )
-            
-            // Convertit en String et envoie via WebSocket
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                self.writeText(jsonString)
-            }
-        } catch {
-            print("Erreur de sérialisation : \(error)")
-        }
-    }
-
-    /// Notifie toutes les sessions des changements dans la liste des connexions.
-    /// - Parameter sessions: Dictionnaire des sessions actives.
-    func notifyConnectionChange(to sessions: [String: WebSocketSession]) {
-        // Crée un dictionnaire des sessions
-        let sessionInfo = sessions.mapValues { $0.id }
-        
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: sessionInfo, options: [])
-            if let jsonString = String(data: jsonData, encoding: .utf8) {
-                // Envoie la liste à toutes les sessions connectées
-                for (_, session) in sessions {
-                    session.writeText(jsonString)
-                }
-            }
-        } catch {
-            print("Erreur de sérialisation : \(error)")
         }
     }
 }
