@@ -18,6 +18,9 @@ struct RouteInfos {
     static let instance = WebSockerServer()
     let server = HttpServer()
     
+    var telecommandeSession: WebSocketSession?
+    var espSession: WebSocketSession?
+    var rpiSession: WebSocketSession?
     var espFireplace: WebSocketSession?
     var phoneMixer: WebSocketSession?
     

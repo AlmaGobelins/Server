@@ -13,7 +13,78 @@ var serverWS = WebSockerServer()
 var cmd = TerminalCommandExecutor()
 var cancellable:AnyCancellable? = nil
 
-/* ** TODO: vérifier les noms des routes sur les clients ** */
+var message: String = "Esp non connecté"
+var timer: Timer?
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "telecommande", textCode: { session, receivedText in
+    serverWS.telecommandeSession = session
+
+    cancellable = Timer
+            .publish(every: 2.0, on: .main, in: .default)
+            .autoconnect()
+            .sink { _ in
+                guard let telecommandeSession = serverWS.telecommandeSession else {
+                    print("Télécommande session introuvable")
+                    return
+                }
+                telecommandeSession.writeText(message)
+            }
+
+}, dataCode: { session, receivedData in
+    print(receivedData)
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espConnect", textCode: { session, receivedText in
+    serverWS.espSession = session
+
+    guard let telecommandeSession = serverWS.telecommandeSession else {
+        print("Télécommande session introuvable")
+        return
+    }
+
+    message = "Esp Connecté"
+    telecommandeSession.writeText(message)
+}, dataCode: { session, receivedData in
+    print(receivedData)
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "rpiConnect", textCode: { session, receivedText in
+    serverWS.rpiSession = session
+    
+    print("Raspberry connected")
+    print("Rpi Received Text \(receivedText)")
+    
+    if let espSess = serverWS.espSession {
+        if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) == "good" {
+            espSess.writeText("allumer")
+        }
+    }
+}, dataCode: { session, receivedData in
+    print(receivedData)
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "readRFID", textCode: { session, receivedText in
+    if let rpiSess = serverWS.rpiSession {
+        rpiSess.writeText("read")
+        print("Read RFID --> Received Text:\(receivedText)")
+
+    } else {
+        print("RPI Non connecté")
+    }
+}, dataCode: { session, receivedData in
+    print(receivedData)
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "allumerFeu", textCode: { session, receivedText in
+    if let espSess = serverWS.espSession {
+        espSess.writeText("allumer")
+    } else {
+        print("ESP Non connecté")
+    }
+    print("--> Received Text: \(receivedText)")
+}, dataCode: { session, receivedData in
+    print(receivedData)
+}))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espFireplace", textCode: { session, receivedText in
     serverWS.espFireplace = session
