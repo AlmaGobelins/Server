@@ -11,13 +11,17 @@ import Swifter
 
 var serverWS = WebSockerServer()
 var cmd = TerminalCommandExecutor()
-var cancellable: AnyCancellable? = nil
+var pingCancellable: AnyCancellable? = nil
+var sensSessionsCancellable: AnyCancellable? = nil
 
 var message: String = "Esp non connecté"
 var timer: Timer?
 
 // Tableau pour suivre toutes les sessions
-var allSessions: [WebSocketSession] = []
+var allSessions: [String:WebSocketSession] = [String:WebSocketSession]()
+
+let maxMissedPings = 1 // Nombre maximum de pings manqués avant suppression
+var missedPingCounts: [String: Int] = [:]
 
 // Fonction pour envoyer un message de connexion à chaque appareil
 func sendConnectionMessage(to session: WebSocketSession, for device: String) {
@@ -25,23 +29,55 @@ func sendConnectionMessage(to session: WebSocketSession, for device: String) {
     session.writeText(connectionMessage)
 }
 
-// Fonction pour envoyer un ping toutes les 5 secondes à toutes les sessions
+// Timer général pour surveiller les pings manqués
 func startPingTimer() {
-    cancellable = Timer
+    pingCancellable = Timer
         .publish(every: 5.0, on: .main, in: .default)
         .autoconnect()
         .sink { _ in
-            // Envoi du ping à toutes les sessions actives
-            for session in allSessions {
+            for (key, session) in allSessions {
+                // Envoyer un ping
                 session.writeText("ping")
+                
+                // Incrémenter le compteur de pings manqués
+                missedPingCounts[key, default: 0] += 1
+                
+                // Vérifier si la session doit être supprimée
+                if missedPingCounts[key]! >= maxMissedPings {
+                    print("Session \(key) supprimée pour inactivité")
+                    
+                    // Supprimer la session
+                    allSessions.removeValue(forKey: key)
+                    missedPingCounts.removeValue(forKey: key)
+                    
+                    // Mise à jour immédiate de la télécommande
+                    notifyTelecommandeAboutSessionChange()
+                }
             }
+        }
+}
+
+// Fonction pour notifier la télécommande des modifications
+func notifyTelecommandeAboutSessionChange() {
+    guard let telecommandeSession = serverWS.telecommandeSession else { return }
+    telecommandeSession.writeSessionsList(allSessions)
+}
+
+
+func startSendingSessions() {
+    sensSessionsCancellable = Timer
+        .publish(every: 5.0, on: .main, in: .default)
+        .autoconnect()
+        .sink { _ in
+            guard let tel = serverWS.telecommandeSession else { print("Telecommande non connectée"); return }
+            tel.writeSessionsList(allSessions)
         }
 }
 
 // Route "telecommande"
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "telecommande", textCode: { session, receivedText in
     serverWS.telecommandeSession = session
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    allSessions["telecommande"] = session  // Ajouter la session à la liste des sessions actives
     
     // Envoi du message de connexion à la télécommande
     sendConnectionMessage(to: session, for: "Télécommande")
@@ -49,32 +85,42 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "telecommande", 
     // Démarrer le timer pour les pings toutes les 5 secondes (une seule fois)
     if allSessions.count == 1 {
         startPingTimer()
+        startSendingSessions()
     }
-
+    
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["telecommande"] = 0
+        return
+    }
+    notifyTelecommandeAboutSessionChange() 
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))
 
-// Route "espConnect"
+// Exemple pour une route spécifique (e.g., "espConnect")
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espConnect", textCode: { session, receivedText in
+    // Ajouter ou mettre à jour la session
     serverWS.espSession = session
-    allSessions.append(session)  // Ajouter la session à la liste des sessions actives
+    allSessions["espConnect"] = session
+    missedPingCounts["espConnect"] = 0 // Initialiser ou réinitialiser les pings manqués
     
-    // Envoi du message de connexion à l'ESP
-    sendConnectionMessage(to: session, for: "ESP")
-
-    guard let telecommandeSession = serverWS.telecommandeSession else {
-        print("Télécommande session introuvable")
+    // Si le message est "pong", réinitialiser le compteur de pings
+    if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) != ""  {
+        missedPingCounts["espConnect"] = 0
         return
     }
-
-    message = "ESP Connecté"
-    telecommandeSession.writeText(message)
+    
+    // Envoi du message de connexion
+    sendConnectionMessage(to: session, for: "ESP")
+    
+    // Mise à jour immédiate de la télécommande
+    notifyTelecommandeAboutSessionChange()
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))
 
 // Route "rpiConnect"
+/*
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "rpiConnect", textCode: { session, receivedText in
     serverWS.rpiSession = session
     allSessions.append(session)  // Ajouter la session à la liste des sessions actives
@@ -215,7 +261,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espMixer", text
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))
-
+*/
 serverWS.start()
 
 RunLoop.main.run()
