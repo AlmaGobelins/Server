@@ -60,20 +60,40 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "allumerFeu", te
     print(receivedData)
 }))
 
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espFireplace", textCode: { session, receivedText in
-    print("Fireplace ESP connected")
-    session.writeText("Connecté au server")
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espFire", textCode: { session, receivedText in
+    print("Esp Fire connecté ---> \(receivedText)")
+
 }, dataCode: { session, receivedData in
-    print("Fireplace ESP data received: \(receivedData)")
+    print("ESP Fire data received: \(receivedData)")
+}))
+
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espBougie", textCode: { session, receivedText in
+    print("Esp bougie connecté ---> \(receivedText)")
+
+}, dataCode: { session, receivedData in
+    print("Esp bougie data received: \(receivedData)")
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace", textCode: { session, receivedText in
     print("Fireplace phone - msg reçu : \(receivedText)")
-    if let espSession = serverWS.getSession(forRoute: "espFireplace") {
-        espSession.writeText(receivedText)
-    } else {
-        session.writeText("Esp Fireplace not connected")
+    
+    if receivedText == "souffle" {
+        if let espSession = serverWS.getSession(forRoute: "espFire") {
+            espSession.writeText(receivedText)
+        } else {
+            session.writeText("Esp Fireplace not connected")
+        }
     }
+    
+    if receivedText == "allumer" {
+        if let espSession = serverWS.getSession(forRoute: "espBougie") {
+            espSession.writeText(receivedText)
+        } else {
+            session.writeText("Esp Bougie not connected")
+        }
+    }
+    
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))
