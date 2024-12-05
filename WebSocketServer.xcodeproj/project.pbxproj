@@ -31,6 +31,7 @@
 		611C4AD72CC7C4F300351126 /* WebSocketServer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = WebSocketServer; sourceTree = BUILT_PRODUCTS_DIR; };
 		611C4ADA2CC7C4F300351126 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		611C4B052CC7E7F300351126 /* TerminalCommandExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalCommandExecutor.swift; sourceTree = "<group>"; };
+		AD805E9C2D01AEDF00F512D2 /* dashboard.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = dashboard.html; sourceTree = "<group>"; };
 		EDA13E172CC7EAF0009D54B9 /* WebSocketServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketServer.swift; sourceTree = "<group>"; };
 		EDA13E222CC8FB5A009D54B9 /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
 		EDA13E242CC8FE3F009D54B9 /* TmpFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmpFileManager.swift; sourceTree = "<group>"; };
@@ -71,6 +72,7 @@
 		611C4AD92CC7C4F300351126 /* WebSocketServer */ = {
 			isa = PBXGroup;
 			children = (
+				AD805E9C2D01AEDF00F512D2 /* dashboard.html */,
 				EDA13E1F2CC8F6FD009D54B9 /* Model */,
 				611C4ADA2CC7C4F300351126 /* main.swift */,
 				611C4B052CC7E7F300351126 /* TerminalCommandExecutor.swift */,
