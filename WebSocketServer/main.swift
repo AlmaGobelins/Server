@@ -75,6 +75,27 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espBougie", tex
     print("Esp bougie data received: \(receivedData)")
 }))
 
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "ipadRoberto", textCode: { session, receivedText in
+    print("receivedText : \(receivedText)")
+}, dataCode: { session, receivedData in
+    print("Ipad data received: \(receivedData)")
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espBanderolleConnect", textCode: { session, receivedText in
+    print("Esp Banderolle connecté ---> \(receivedText)")
+    
+    if receivedText == "both"{
+        if let ipadSession = serverWS.getSession(forRoute: "ipadRoberto") {
+            ipadSession.writeText(receivedText)
+        } else {
+            session.writeText("Ipad Roberto not connected")
+        }
+    }
+
+}, dataCode: { session, receivedData in
+    print("Esp Banderolle data received: \(receivedData)")
+}))
+
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace", textCode: { session, receivedText in
     print("Fireplace phone - msg reçu : \(receivedText)")
     

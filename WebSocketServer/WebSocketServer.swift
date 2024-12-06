@@ -140,13 +140,14 @@ struct RouteInfos {
                 <script>
                     // Liste des routes à surveiller
                     const routes = [
-                        'telecommande', 
                         'espConnect', 
-                        'rpiConnect', 
-                        'allumerFeu',
                         'espFireplace', 
                         'phoneMixer', 
-                        'espMixer'
+                        'espMixer',
+                        'espBanderolleConnect',
+                        'espBougie',
+                        'espFire',
+                        'ipadRoberto'          
                     ];
 
                     const deviceStatusElement = document.getElementById('deviceStatus');
