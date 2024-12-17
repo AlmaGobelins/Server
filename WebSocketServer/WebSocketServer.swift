@@ -19,7 +19,7 @@ struct RouteInfos {
     let server = HttpServer()
     
     // Dictionnaire des sessions et états
-    var sessions: [String: (session: WebSocketSession, isConnected: Bool, lastPongDate: Date)] = [:]
+    var sessions: [String: (session: WebSocketSession, isConnected: Bool, lastPongDate: Date, callbackName: String)] = [:]
     private let pingInterval: TimeInterval = 5.0
     private let pingTimeout: TimeInterval = 5.0
     
@@ -30,20 +30,20 @@ struct RouteInfos {
                     self.sessions[routeInfos.routeName]?.lastPongDate = Date()
                     self.sessions[routeInfos.routeName]?.isConnected = true
                     print("Received pong from route: \(routeInfos.routeName)")
-              } else {
-                  // Traitez d'autres messages normalement
-                  routeInfos.textCode(session, text)
-              }
+                  } else {
+                      // Traitez d'autres messages normalement
+                      routeInfos.textCode(session, text)
+                  }
             },
             binary: { session, binary in
                 // Ajout ou mise à jour de la session dans le dictionnaire
-                self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date())
+                self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
                 routeInfos.dataCode(session, Data(binary))
             },
             connected: { session in
                 print("Client connected to route: /\(routeInfos.routeName)")
                 // Ajouter la session à la collection des sessions
-                self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date())
+                self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
             },
             disconnected: { session in
                 print("Client disconnected from route: /\(routeInfos.routeName)")
@@ -62,13 +62,11 @@ struct RouteInfos {
                    let type = json["type"] as? String {
                     
                     if type == "get_status" {
-                        // Construire un dictionnaire des états de connexion
-                        var statusDict: [String: Bool] = [:]
+                        var statusDict: [String: [Any]] = [:]
                         for (routeName, sessionInfo) in self.sessions {
-                            statusDict[routeName] = sessionInfo.isConnected
+                            statusDict[routeName] = [sessionInfo.isConnected, sessionInfo.callbackName]
                         }
                         
-                        // Convertir le dictionnaire en JSON
                         if let jsonData = try? JSONSerialization.data(withJSONObject: statusDict, options: []),
                            let jsonString = String(data: jsonData, encoding: .utf8) {
                             session.writeText(jsonString)
@@ -121,6 +119,7 @@ struct RouteInfos {
                     .device-status {
                         font-weight: bold;
                         padding: 10px;
+                        margin: 10px 0;
                         border-radius: 4px;
                     }
                     .connected {
@@ -131,6 +130,22 @@ struct RouteInfos {
                         background-color: #F44336;
                         color: white;
                     }
+                    .trigger-button {
+                        background-color: #2196F3;
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        margin-top: 10px;
+                    }
+                    .trigger-button:hover {
+                        background-color: #1976D2;
+                    }
+                    .trigger-button:disabled {
+                        background-color: #9E9E9E;
+                        cursor: not-allowed;
+                    }
                 </style>
             </head>
             <body>
@@ -138,7 +153,6 @@ struct RouteInfos {
                 <div id="deviceStatus" class="device-list"></div>
 
                 <script>
-                    // Liste des routes à surveiller
                     const routes = [
                         'espConnect', 
                         'espFireplace', 
@@ -150,18 +164,35 @@ struct RouteInfos {
                         'ipadRoberto'          
                     ];
 
+                    // Définition des fonctions de callback
+                    const callbacks = {
+                        espCallback: function() {
+                            websocket.send("message");
+                        },
+                        // Ajouter d'autres callbacks ici
+                    }
+            
+                    function triggerAction(callbackName) {
+                        if (callbacks[callbackName]) {
+                            callbacks[callbackName]();
+                        } else {
+                            console.error(`Callback ${callbackName} not found`);
+                        }
+                    }
+
+            
                     const deviceStatusElement = document.getElementById('deviceStatus');
+                    let websocket;
 
                     function createWebSocket() {
-                        const socket = new WebSocket(`ws://${window.location.host}/dashboard`);
+                        websocket = new WebSocket(`ws://${window.location.host}/dashboard`);
 
-                        socket.onopen = () => {
+                        websocket.onopen = () => {
                             console.log('Dashboard WebSocket connection established');
-                            // Demander l'état initial des connexions
-                            socket.send(JSON.stringify({ type: 'get_status' }));
+                            websocket.send(JSON.stringify({ type: 'get_status' }));
                         };
 
-                        socket.onmessage = (event) => {
+                        websocket.onmessage = (event) => {
                             try {
                                 const data = JSON.parse(event.data);
                                 updateDeviceStatus(data);
@@ -170,19 +201,17 @@ struct RouteInfos {
                             }
                         };
 
-                        socket.onclose = () => {
+                        websocket.onclose = () => {
                             console.log('WebSocket connection closed. Reconnecting...');
                             setTimeout(createWebSocket, 6000);
                         };
 
-                        return socket;
+                        return websocket;
                     }
 
                     function updateDeviceStatus(statusData) {
-                        // Vider le conteneur actuel
                         deviceStatusElement.innerHTML = '';
-
-                        // Créer une carte pour chaque device
+                        
                         routes.forEach(route => {
                             const deviceCard = document.createElement('div');
                             deviceCard.className = 'device-card';
@@ -193,18 +222,26 @@ struct RouteInfos {
                             const statusElement = document.createElement('div');
                             statusElement.className = 'device-status';
                             
-                            // Déterminer le statut
-                            const isConnected = statusData[route] === true;
+                            const deviceInfo = statusData[route];
+                            const isConnected = deviceInfo ? deviceInfo[0] : false;
+                            const callbackName = deviceInfo ? deviceInfo[1] : 'unknown';
+                            
                             statusElement.textContent = isConnected ? 'Connecté' : 'Déconnecté';
                             statusElement.classList.add(isConnected ? 'connected' : 'disconnected');
-
+                            
+                            const actionButton = document.createElement('button');
+                            actionButton.className = 'trigger-button';
+                            actionButton.textContent = 'Trigger Action';
+                            actionButton.disabled = !isConnected;
+                            actionButton.onclick = () => triggerAction(route, callbackName);
+                            
                             deviceCard.appendChild(deviceName);
                             deviceCard.appendChild(statusElement);
+                            deviceCard.appendChild(actionButton);
                             deviceStatusElement.appendChild(deviceCard);
                         });
                     }
 
-                    // Initialiser la connexion WebSocket
                     const socket = createWebSocket();
                 </script>
             </body>
@@ -241,6 +278,7 @@ struct RouteInfos {
                 if Date().timeIntervalSince(sessionInfo.lastPongDate) > self.pingTimeout {
                     // Si aucun pong reçu dans le délai, marquer comme non connecté
                     self.sessions[routeName]?.isConnected = false
+                    sessionInfo.session.socket.close()
                     print("No pong received from \(routeName), marking as disconnected.")
                 }
             }
