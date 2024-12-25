@@ -161,14 +161,31 @@ struct RouteInfos {
                         'espBanderolleConnect',
                         'espBougie',
                         'espFire',
-                        'ipadRoberto'          
+                        'ipadRoberto',
+                        'test'
                     ];
+            
+
+                    function sendToRoute(route, data) {
+                        if (websocket && websocket.readyState === WebSocket.OPEN) {
+                            const message = {
+                                route: route,
+                                data: data
+                            };
+                            websocket.send(JSON.stringify(message));
+                        } else {
+                            console.error('WebSocket is not connected');
+                        }
+                    }
 
                     // Définition des fonctions de callback
                     const callbacks = {
-                        espCallback: function() {
-                            websocket.send("message");
+                        espFire: function() {
+                            sendToRoute('espFire', "## test callback esp");
                         },
+                        test: function() {
+                            console.log("hello from dahsboard -test callback-");
+                        }
                         // Ajouter d'autres callbacks ici
                     }
             
@@ -254,14 +271,21 @@ struct RouteInfos {
     
     func start() {
         do {
+            print("🔄 Starting server...")
             serveStaticHTML()
             
-            try server.start()
+            // Ajoutez ces options
+            server.middleware.append { request in
+                print("📝 Incoming request: \(request.method) \(request.path)")
+                return nil
+            }
             
-            print("Server has started (port = \(try server.port())). Try to connect now...")
+            try server.start(8080, priority: .userInteractive)
+            
+            print("✅ Server started successfully on port \(try server.port())")
             startPingRoutine()
         } catch {
-            print("Server failed to start: \(error.localizedDescription)")
+            print("❌ Server failed to start: \(error.localizedDescription)")
         }
     }
     

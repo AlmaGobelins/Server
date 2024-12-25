@@ -19,6 +19,12 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "telecommande", 
     print("Telecommande data received: \(receivedData)")
 }))
 
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "test", textCode: { session, receivedText in
+    print("Test device connected")
+}, dataCode: { session, receivedData in
+    print("Test device data received: \(receivedData)")
+}))
+
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espConnect", textCode: { session, receivedText in
     print("receivedText : \(receivedText)")
 }, dataCode: { session, receivedData in
@@ -96,7 +102,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espBanderolleCo
     print("Esp Banderolle data received: \(receivedData)")
 }))
 
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace", textCode: { session, receivedText in
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFire", textCode: { session, receivedText in
     print("Fireplace phone - msg reçu : \(receivedText)")
     
     if receivedText == "souffle" {
@@ -106,6 +112,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFireplace"
             session.writeText("Esp Fireplace not connected")
         }
     }
+    
     
     if receivedText == "allumer" {
         if let espSession = serverWS.getSession(forRoute: "espBougie") {
