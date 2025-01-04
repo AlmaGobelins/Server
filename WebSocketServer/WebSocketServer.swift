@@ -30,10 +30,9 @@ struct RouteInfos {
                     self.sessions[routeInfos.routeName]?.lastPongDate = Date()
                     self.sessions[routeInfos.routeName]?.isConnected = true
                     print("Received pong from route: \(routeInfos.routeName)")
-                  } else {
-                      // Traitez d'autres messages normalement
-                      routeInfos.textCode(session, text)
-                  }
+                } else {
+                    routeInfos.textCode(session, text)
+                }
             },
             binary: { session, binary in
                 // Ajout ou mise à jour de la session dans le dictionnaire
@@ -72,6 +71,9 @@ struct RouteInfos {
                             session.writeText(jsonString)
                         }
                     }
+                } else {
+                    print("Received non-JSON message: \(text)")
+                    self.dispatchMessage(text)
                 }
             },
             connected: { session in
@@ -151,7 +153,7 @@ struct RouteInfos {
             <body>
                 <h1>Devices Connection Dashboard</h1>
                 <div id="deviceStatus" class="device-list"></div>
-
+            
                 <script>
                     const routes = [
                         'espConnect', 
@@ -165,26 +167,13 @@ struct RouteInfos {
                         'test'
                     ];
             
-
-                    function sendToRoute(route, data) {
-                        if (websocket && websocket.readyState === WebSocket.OPEN) {
-                            const message = {
-                                route: route,
-                                data: data
-                            };
-                            websocket.send(JSON.stringify(message));
-                        } else {
-                            console.error('WebSocket is not connected');
-                        }
-                    }
-
                     // Définition des fonctions de callback
                     const callbacks = {
                         espFire: function() {
-                            sendToRoute('espFire', "## test callback esp");
+                            socket.send("## test callback esp");
                         },
                         test: function() {
-                            console.log("hello from dahsboard -test callback-");
+                            socket.send("test")
                         }
                         // Ajouter d'autres callbacks ici
                     }
@@ -196,19 +185,19 @@ struct RouteInfos {
                             console.error(`Callback ${callbackName} not found`);
                         }
                     }
-
+            
             
                     const deviceStatusElement = document.getElementById('deviceStatus');
                     let websocket;
-
+            
                     function createWebSocket() {
                         websocket = new WebSocket(`ws://${window.location.host}/dashboard`);
-
+            
                         websocket.onopen = () => {
                             console.log('Dashboard WebSocket connection established');
                             websocket.send(JSON.stringify({ type: 'get_status' }));
                         };
-
+            
                         websocket.onmessage = (event) => {
                             try {
                                 const data = JSON.parse(event.data);
@@ -217,15 +206,15 @@ struct RouteInfos {
                                 console.error('Error parsing message:', error);
                             }
                         };
-
+            
                         websocket.onclose = () => {
                             console.log('WebSocket connection closed. Reconnecting...');
                             setTimeout(createWebSocket, 6000);
                         };
-
+            
                         return websocket;
                     }
-
+            
                     function updateDeviceStatus(statusData) {
                         deviceStatusElement.innerHTML = '';
                         
@@ -258,7 +247,7 @@ struct RouteInfos {
                             deviceStatusElement.appendChild(deviceCard);
                         });
                     }
-
+            
                     const socket = createWebSocket();
                 </script>
             </body>
@@ -266,6 +255,16 @@ struct RouteInfos {
             """
             
             return HttpResponse.ok(.text(htmlContent))
+        }
+    }
+    
+    private func dispatchMessage(_ message: String) {
+        print("inside dispatchMessage : \(message)")
+        for (routeName, sessionInfo) in self.sessions {
+            if message.trimmingCharacters(in: .whitespacesAndNewlines) == routeName {
+                print("##### Debug : \(routeName) : \(message) -- \(sessionInfo.session)")
+                sessionInfo.session.writeText("Route : \(routeName) -- Message : \(message)")
+            }
         }
     }
     
@@ -293,11 +292,11 @@ struct RouteInfos {
         Timer.scheduledTimer(withTimeInterval: pingInterval, repeats: true) { _ in
             for (routeName, sessionInfo) in self.sessions {
                 guard sessionInfo.isConnected else { continue }
-
+                
                 // Envoi du ping
                 sessionInfo.session.writeText("ping")
                 print("Ping envoyé à \(routeName)")
-
+                
                 // Vérification du délai pour le pong
                 if Date().timeIntervalSince(sessionInfo.lastPongDate) > self.pingTimeout {
                     // Si aucun pong reçu dans le délai, marquer comme non connecté
@@ -308,12 +307,12 @@ struct RouteInfos {
             }
         }
     }
-
+    
     func getSession(forRoute routeName: String) -> WebSocketSession? {
         return sessions[routeName]?.session
     }
     
-
+    
     func isDeviceConnected(forRoute routeName: String) -> Bool {
         return sessions[routeName]?.isConnected ?? false
     }
