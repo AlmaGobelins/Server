@@ -13,37 +13,6 @@ var serverWS = WebSockerServer()
 var cmd = TerminalCommandExecutor()
 var cancellable: AnyCancellable? = nil
 
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "telecommande", textCode: { session, receivedText in
-    print("Telecommande connected")
-}, dataCode: { session, receivedData in
-    print("Telecommande data received: \(receivedData)")
-}))
-
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "test", textCode: { session, receivedText in
-    print("Test device connected")
-}, dataCode: { session, receivedData in
-    print("Test device data received: \(receivedData)")
-}))
-
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espConnect", textCode: { session, receivedText in
-    print("receivedText : \(receivedText)")
-}, dataCode: { session, receivedData in
-    print("ESP data received: \(receivedData)")
-}))
-
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "rpiConnect", textCode: { session, receivedText in
-    print("Raspberry Pi connected")
-    print("RPI Received Text: \(receivedText)")
-    
-    if let espSess = serverWS.getSession(forRoute: "espConnect") {
-        if receivedText.trimmingCharacters(in: .whitespacesAndNewlines) == "good" {
-            espSess.writeText("allumer")
-        }
-    }
-}, dataCode: { session, receivedData in
-    print("RPI data received: \(receivedData)")
-}))
-
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "readRFID", textCode: { session, receivedText in
     if let rpiSess = serverWS.getSession(forRoute: "rpiConnect") {
         rpiSess.writeText("read")
@@ -122,24 +91,6 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneFire", tex
         }
     }
     
-}, dataCode: { session, receivedData in
-    print(receivedData)
-}))
-
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "phoneMixer", textCode: { session, receivedText in
-    print("Phone mixer connected")
-    session.writeText("Connected to route: 'phoneMixer'")
-}, dataCode: { session, receivedData in
-    print(receivedData)
-}))
-
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espMixer", textCode: { session, receivedText in
-    print("Mixer ESP - msg reçu : \(receivedText)")
-    if let pMixerSession = serverWS.getSession(forRoute: "phoneMixer") {
-        pMixerSession.writeText(receivedText)
-    } else {
-        session.writeText("Phone mixer not connected")
-    }
 }, dataCode: { session, receivedData in
     print(receivedData)
 }))

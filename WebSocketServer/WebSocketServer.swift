@@ -163,37 +163,25 @@ struct RouteInfos {
                 <div id="deviceStatus" class="device-list"></div>
                     <script>
                         const routes = [
-                            'espConnect', 
-                            'phoneMixer', 
-                            'espMixer',
                             'espBanderolleConnect',
                             'espBougie',
                             'espFire',
                             'ipadRoberto',
-                            'test'
+                            'phoneFire',
                         ];
                         
                         const callbacks = {
                             espFire: function() {
                                 socket.send("espFire:trigger_action");
                             },
-                            test: function() {
-                                socket.send("test:trigger_action");
-                            },
-                            espConnect: function() {
-                                socket.send("espConnect:trigger_action");
-                            },
-                            phoneMixer: function() {
-                                socket.send("phoneMixer:trigger_action")
-                            },
                             espBanderolleConnect: function() {
                                 socket.send("espBanderolleConnect:trigger_action")
                             },
                             espBougie: function() {
-                                socket.send("espBougie:trigger_action")
+                                socket.send("espBougie:turn_on_bougie")
                             },
                             espFire: function() {
-                                socket.send("espFire:trigger_action")
+                                socket.send("espFire:turn_on_fire")
                             },
                             ipadRoberto: function() {
                                 socket.send("ipadRoberto:next_step")
@@ -205,10 +193,16 @@ struct RouteInfos {
                                 socket.send("ipadRoberto:trigger_coucou")
                             },
                             triggerVideoY: function() {
-                                socket.send("ipadRoberto:trigger_video_incorrect")
+                                socket.send("ipadRoberto:trigger_video_correct")
                             },
                             triggerVideoN: function() {
                                 socket.send("ipadRoberto:trigger_video_incorrect")
+                            },
+                            triggerSugar: function() {
+                                socket.send("ipadRoberto:trigger_sugar")
+                            },
+                            triggerVideoBougie: function() {
+                                socket.send("ipadRoberto:play_video_bougie")
                             },
                         };
                         
@@ -280,14 +274,14 @@ struct RouteInfos {
                                     buttonGroup.appendChild(actionButton);
                                 
                                     if (route === "ipadRoberto") {
-                                        const actionButtonPrevious = document.createElement('buttonPrevious');
+                                        const actionButtonPrevious = document.createElement('button');
                                         actionButtonPrevious.className = 'trigger-button';
                                         actionButtonPrevious.textContent = 'Trigger Previous Step';
                                         actionButtonPrevious.disabled = !isConnected;
                                         actionButtonPrevious.onclick = () => triggerAction('previousStep');
                                         buttonGroup.appendChild(actionButtonPrevious);
             
-                                        const actionButtonCoucou = document.createElement('buttonCoucou');
+                                        const actionButtonCoucou = document.createElement('button');
                                         actionButtonCoucou.className = 'trigger-button';
                                         actionButtonCoucou.textContent = 'Trigger Coucou';
                                         actionButtonCoucou.disabled = !isConnected;
@@ -307,6 +301,20 @@ struct RouteInfos {
                                         actionButtonVideoN.disabled = !isConnected;
                                         actionButtonVideoN.onclick = () => triggerAction('triggerVideoN');
                                         buttonGroup.appendChild(actionButtonVideoN);
+            
+                                        const actionButtonSugar = document.createElement('button');
+                                        actionButtonSugar.className = 'trigger-button';
+                                        actionButtonSugar.textContent = 'Trigger Sugar Video';
+                                        actionButtonSugar.disabled = !isConnected;
+                                        actionButtonSugar.onclick = () => triggerAction('triggerSugar');
+                                        buttonGroup.appendChild(actionButtonSugar);
+            
+                                        const actionButtonVideoBougie = document.createElement('button');
+                                        actionButtonVideoBougie.className = 'trigger-button';
+                                        actionButtonVideoBougie.textContent = 'Trigger Video Bougie';
+                                        actionButtonVideoBougie.disabled = !isConnected;
+                                        actionButtonVideoBougie.onclick = () => triggerAction('triggerVideoBougie');
+                                        buttonGroup.appendChild(actionButtonVideoBougie);
                                     }
                                     
                                     deviceCard.appendChild(deviceName);
@@ -364,9 +372,8 @@ struct RouteInfos {
                 // Envoi du ping
                 sessionInfo.session.writeText("ping")
                 print("Ping envoyé à \(routeName)")
-                
-                // Vérification du délai pour le pong
-                if Date().timeIntervalSince(sessionInfo.lastPongDate) > self.pingTimeout {
+
+                    if Date().timeIntervalSince(sessionInfo.lastPongDate) > self.pingTimeout {
                     // Si aucun pong reçu dans le délai, marquer comme non connecté
                     self.sessions[routeName]?.isConnected = false
                     sessionInfo.session.socket.close()
