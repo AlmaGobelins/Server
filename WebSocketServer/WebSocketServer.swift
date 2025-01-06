@@ -85,172 +85,240 @@ struct RouteInfos {
         )
     }
     
-    
+    /*
+     * Trouver un moyen d'avoir une seule callback côté ipadRoberto: par exemple incrementer une variable qui trigger les actions au changement (onChange(of: step))
+     */
     func serveStaticHTML() {
         server["/"] = { request in
             let htmlContent = """
             <!DOCTYPE html>
             <html lang="fr">
-            <head>
-                <meta charset="UTF-8">
-                <title>WebSocket Devices Dashboard</title>
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        max-width: 800px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        background-color: #f0f0f0;
-                    }
-                    h1 {
-                        text-align: center;
-                        color: #333;
-                    }
-                    .device-list {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                        gap: 15px;
-                    }
-                    .device-card {
-                        background-color: white;
-                        border-radius: 8px;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                        padding: 15px;
-                        text-align: center;
-                    }
-                    .device-status {
-                        font-weight: bold;
-                        padding: 10px;
-                        margin: 10px 0;
-                        border-radius: 4px;
-                    }
-                    .connected {
-                        background-color: #4CAF50;
-                        color: white;
-                    }
-                    .disconnected {
-                        background-color: #F44336;
-                        color: white;
-                    }
-                    .trigger-button {
-                        background-color: #2196F3;
-                        color: white;
-                        border: none;
-                        padding: 8px 16px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        margin-top: 10px;
-                    }
-                    .trigger-button:hover {
-                        background-color: #1976D2;
-                    }
-                    .trigger-button:disabled {
-                        background-color: #9E9E9E;
-                        cursor: not-allowed;
-                    }
-                </style>
-            </head>
-            <body>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>WebSocket Devices Dashboard</title>
+                        <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            padding: 20px;
+                            background-color: #f0f0f0;
+                        }
+                        h1 {
+                            text-align: center;
+                            color: #333;
+                        }
+                        .device-list {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                            gap: 15px;
+                        }
+                        .device-card {
+                            background-color: white;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                            padding: 15px;
+                            text-align: center;
+                        }
+                        .device-status {
+                            font-weight: bold;
+                            padding: 10px;
+                            margin: 10px 0;
+                            border-radius: 4px;
+                        }
+                        .connected {
+                            background-color: #4CAF50;
+                            color: white;
+                        }
+                        .disconnected {
+                            background-color: #F44336;
+                            color: white;
+                        }
+                        .button-group {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 10px;
+                            margin-top: 10px;
+                        }
+                        .trigger-button {
+                            background-color: #2196F3;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        }
+                        .trigger-button:hover {
+                            background-color: #1976D2;
+                        }
+                        .trigger-button:disabled {
+                            background-color: #9E9E9E;
+                            cursor: not-allowed;
+                        }
+                        </style>
+                    </head>
+                <body>
                 <h1>Devices Connection Dashboard</h1>
+            
                 <div id="deviceStatus" class="device-list"></div>
-            
-                <script>
-                    const routes = [
-                        'espConnect', 
-                        'espFireplace', 
-                        'phoneMixer', 
-                        'espMixer',
-                        'espBanderolleConnect',
-                        'espBougie',
-                        'espFire',
-                        'ipadRoberto',
-                        'test'
-                    ];
-            
-                    // Définition des fonctions de callback
-                    const callbacks = {
-                        espFire: function() {
-                            socket.send("## test callback esp");
-                        },
-                        test: function() {
-                            socket.send("test")
-                        }
-                        // Ajouter d'autres callbacks ici
-                    }
-            
-                    function triggerAction(callbackName) {
-                        if (callbacks[callbackName]) {
-                            callbacks[callbackName]();
-                        } else {
-                            console.error(`Callback ${callbackName} not found`);
-                        }
-                    }
-            
-            
-                    const deviceStatusElement = document.getElementById('deviceStatus');
-                    let websocket;
-            
-                    function createWebSocket() {
-                        websocket = new WebSocket(`ws://${window.location.host}/dashboard`);
-            
-                        websocket.onopen = () => {
-                            console.log('Dashboard WebSocket connection established');
-                            websocket.send(JSON.stringify({ type: 'get_status' }));
-                        };
-            
-                        websocket.onmessage = (event) => {
-                            try {
-                                const data = JSON.parse(event.data);
-                                updateDeviceStatus(data);
-                            } catch (error) {
-                                console.error('Error parsing message:', error);
-                            }
-                        };
-            
-                        websocket.onclose = () => {
-                            console.log('WebSocket connection closed. Reconnecting...');
-                            setTimeout(createWebSocket, 6000);
-                        };
-            
-                        return websocket;
-                    }
-            
-                    function updateDeviceStatus(statusData) {
-                        deviceStatusElement.innerHTML = '';
+                    <script>
+                        const routes = [
+                            'espConnect', 
+                            'phoneMixer', 
+                            'espMixer',
+                            'espBanderolleConnect',
+                            'espBougie',
+                            'espFire',
+                            'ipadRoberto',
+                            'test'
+                        ];
                         
-                        routes.forEach(route => {
-                            const deviceCard = document.createElement('div');
-                            deviceCard.className = 'device-card';
+                        const callbacks = {
+                            espFire: function() {
+                                socket.send("espFire:trigger_action");
+                            },
+                            test: function() {
+                                socket.send("test:trigger_action");
+                            },
+                            espConnect: function() {
+                                socket.send("espConnect:trigger_action");
+                            },
+                            phoneMixer: function() {
+                                socket.send("phoneMixer:trigger_action")
+                            },
+                            espBanderolleConnect: function() {
+                                socket.send("espBanderolleConnect:trigger_action")
+                            },
+                            espBougie: function() {
+                                socket.send("espBougie:trigger_action")
+                            },
+                            espFire: function() {
+                                socket.send("espFire:trigger_action")
+                            },
+                            ipadRoberto: function() {
+                                socket.send("ipadRoberto:next_step")
+                            },
+                            previousStep: function() {
+                                socket.send("ipadRoberto:previous_step")
+                            },
+                            triggerCoucou: function(){
+                                socket.send("ipadRoberto:trigger_coucou")
+                            },
+                            triggerVideoY: function() {
+                                socket.send("ipadRoberto:trigger_video_incorrect")
+                            },
+                            triggerVideoN: function() {
+                                socket.send("ipadRoberto:trigger_video_incorrect")
+                            },
+                        };
+                        
+                        function triggerAction(callbackName) {
+                            if (callbacks[callbackName]) {
+                                callbacks[callbackName]();
+                            } else {
+                                console.error(`Callback ${callbackName} not found`);
+                            }
+                        }
+                        
+                        const deviceStatusElement = document.getElementById('deviceStatus');
+                        let websocket;
+                        
+                        function createWebSocket() {
+                            websocket = new WebSocket(`ws://${window.location.host}/dashboard`);
                             
-                            const deviceName = document.createElement('h2');
-                            deviceName.textContent = route;
+                            websocket.onopen = () => {
+                                console.log('Dashboard WebSocket connection established');
+                                websocket.send(JSON.stringify({ type: 'get_status' }));
+                            };
                             
-                            const statusElement = document.createElement('div');
-                            statusElement.className = 'device-status';
+                            websocket.onmessage = (event) => {
+                                try {
+                                    const data = JSON.parse(event.data);
+                                    updateDeviceStatus(data);
+                                } catch (error) {
+                                    console.error('Error parsing message:', error);
+                                }
+                            };
                             
-                            const deviceInfo = statusData[route];
-                            const isConnected = deviceInfo ? deviceInfo[0] : false;
-                            const callbackName = deviceInfo ? deviceInfo[1] : 'unknown';
+                            websocket.onclose = () => {
+                                console.log('WebSocket connection closed. Reconnecting...');
+                                setTimeout(createWebSocket, 6000);
+                            };
                             
-                            statusElement.textContent = isConnected ? 'Connecté' : 'Déconnecté';
-                            statusElement.classList.add(isConnected ? 'connected' : 'disconnected');
-                            
-                            const actionButton = document.createElement('button');
-                            actionButton.className = 'trigger-button';
-                            actionButton.textContent = 'Trigger Action';
-                            actionButton.disabled = !isConnected;
-                            actionButton.onclick = () => triggerAction(route, callbackName);
-                            
-                            deviceCard.appendChild(deviceName);
-                            deviceCard.appendChild(statusElement);
-                            deviceCard.appendChild(actionButton);
-                            deviceStatusElement.appendChild(deviceCard);
-                        });
-                    }
+                            return websocket;
+                        }
+                        
+                            function updateDeviceStatus(statusData) {
+                                deviceStatusElement.innerHTML = '';
+                                
+                                routes.forEach(route => {
+                                    const deviceCard = document.createElement('div');
+                                    deviceCard.className = 'device-card';
+                                    
+                                    const deviceName = document.createElement('h2');
+                                    deviceName.textContent = route;
+                                    
+                                    const statusElement = document.createElement('div');
+                                    statusElement.className = 'device-status';
+                                    
+                                    const deviceInfo = statusData[route];
+                                    const isConnected = deviceInfo ? deviceInfo[0] : false;
+                                    const callbackName = deviceInfo ? deviceInfo[1] : 'unknown';
+                                    
+                                    statusElement.textContent = isConnected ? 'Connecté' : 'Déconnecté';
+                                    statusElement.classList.add(isConnected ? 'connected' : 'disconnected');
+                                
+                                    const buttonGroup = document.createElement('div');
+                                    buttonGroup.className = 'button-group';
+                                    
+                                    const actionButton = document.createElement('button');
+                                    actionButton.className = 'trigger-button';
+                                    actionButton.textContent = 'Trigger Action';
+                                    actionButton.disabled = !isConnected;
+                                    actionButton.onclick = () => triggerAction(route);
+                                
+                                    buttonGroup.appendChild(actionButton);
+                                
+                                    if (route === "ipadRoberto") {
+                                        const actionButtonPrevious = document.createElement('buttonPrevious');
+                                        actionButtonPrevious.className = 'trigger-button';
+                                        actionButtonPrevious.textContent = 'Trigger Previous Step';
+                                        actionButtonPrevious.disabled = !isConnected;
+                                        actionButtonPrevious.onclick = () => triggerAction('previousStep');
+                                        buttonGroup.appendChild(actionButtonPrevious);
             
-                    const socket = createWebSocket();
-                </script>
-            </body>
+                                        const actionButtonCoucou = document.createElement('buttonCoucou');
+                                        actionButtonCoucou.className = 'trigger-button';
+                                        actionButtonCoucou.textContent = 'Trigger Coucou';
+                                        actionButtonCoucou.disabled = !isConnected;
+                                        actionButtonCoucou.onclick = () => triggerAction('triggerCoucou');
+                                        buttonGroup.appendChild(actionButtonCoucou);
+            
+                                        const actionButtonVideoY = document.createElement('button');
+                                        actionButtonVideoY.className = 'trigger-button';
+                                        actionButtonVideoY.textContent = 'Trigger Video Correct';
+                                        actionButtonVideoY.disabled = !isConnected;
+                                        actionButtonVideoY.onclick = () => triggerAction('triggerVideoY');
+                                        buttonGroup.appendChild(actionButtonVideoY);
+                                
+                                        const actionButtonVideoN = document.createElement('button');
+                                        actionButtonVideoN.className = 'trigger-button';
+                                        actionButtonVideoN.textContent = 'Trigger Video Incorrect';
+                                        actionButtonVideoN.disabled = !isConnected;
+                                        actionButtonVideoN.onclick = () => triggerAction('triggerVideoN');
+                                        buttonGroup.appendChild(actionButtonVideoN);
+                                    }
+                                    
+                                    deviceCard.appendChild(deviceName);
+                                    deviceCard.appendChild(statusElement);
+                                    deviceCard.appendChild(buttonGroup);
+                                    deviceStatusElement.appendChild(deviceCard);
+                            });
+                        }
+                        
+                        const socket = createWebSocket();
+                    </script>
+                </body>
             </html>
             """
             
@@ -259,11 +327,11 @@ struct RouteInfos {
     }
     
     private func dispatchMessage(_ message: String) {
-        print("inside dispatchMessage : \(message)")
+        var newMessage = message
         for (routeName, sessionInfo) in self.sessions {
-            if message.trimmingCharacters(in: .whitespacesAndNewlines) == routeName {
-                print("##### Debug : \(routeName) : \(message) -- \(sessionInfo.session)")
-                sessionInfo.session.writeText("Route : \(routeName) -- Message : \(message)")
+            if newMessage.trimmingCharacters(in: .whitespacesAndNewlines).contains(routeName) {
+                newMessage.trimPrefix("\(routeName):")
+                sessionInfo.session.writeText(newMessage)
             }
         }
     }
