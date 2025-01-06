@@ -13,17 +13,6 @@ var serverWS = WebSockerServer()
 var cmd = TerminalCommandExecutor()
 var cancellable: AnyCancellable? = nil
 
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "readRFID", textCode: { session, receivedText in
-    if let rpiSess = serverWS.getSession(forRoute: "rpiConnect") {
-        rpiSess.writeText("read")
-        print("Read RFID --> Received Text: \(receivedText)")
-    } else {
-        print("RPI Non connecté")
-    }
-}, dataCode: { session, receivedData in
-    print(receivedData)
-}))
-
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "allumerFeu", textCode: { session, receivedText in
     if let espSess = serverWS.getSession(forRoute: "espConnect") {
         espSess.writeText("allumer")
@@ -56,10 +45,10 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "ipadRoberto", t
     print("Ipad data received: \(receivedData)")
 }))
 
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espBanderolleConnect", textCode: { session, receivedText in
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espPapel1", textCode: { session, receivedText in
     print("Esp Banderolle connecté ---> \(receivedText)")
     
-    if receivedText == "both"{
+    if receivedText == "papel_1_both"{
         if let ipadSession = serverWS.getSession(forRoute: "ipadRoberto") {
             ipadSession.writeText(receivedText)
         } else {
@@ -67,6 +56,21 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espBanderolleCo
         }
     }
 
+}, dataCode: { session, receivedData in
+    print("Esp Banderolle data received: \(receivedData)")
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espPapel2", textCode: { session, receivedText in
+    print("Esp Banderolle connecté ---> \(receivedText)")
+    
+    if receivedText == "papel_2_both"{
+        if let ipadSession = serverWS.getSession(forRoute: "ipadRoberto") {
+            ipadSession.writeText(receivedText)
+        } else {
+            session.writeText("Ipad Roberto not connected")
+        }
+    }
+    
 }, dataCode: { session, receivedData in
     print("Esp Banderolle data received: \(receivedData)")
 }))

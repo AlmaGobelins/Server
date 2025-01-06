@@ -21,7 +21,7 @@ struct RouteInfos {
     // Dictionnaire des sessions et états
     var sessions: [String: (session: WebSocketSession, isConnected: Bool, lastPongDate: Date, callbackName: String)] = [:]
     private let pingInterval: TimeInterval = 5.0
-    private let pingTimeout: TimeInterval = 5.0
+    private let pingTimeout: TimeInterval = 10.0
     
     func setupWithRoutesInfos(routeInfos: RouteInfos) {
         server["/" + routeInfos.routeName] = websocket(
@@ -163,7 +163,8 @@ struct RouteInfos {
                 <div id="deviceStatus" class="device-list"></div>
                     <script>
                         const routes = [
-                            'espBanderolleConnect',
+                            'espPapel1',
+                            'espPapel2',
                             'espBougie',
                             'espFire',
                             'ipadRoberto',
@@ -171,12 +172,6 @@ struct RouteInfos {
                         ];
                         
                         const callbacks = {
-                            espFire: function() {
-                                socket.send("espFire:trigger_action");
-                            },
-                            espBanderolleConnect: function() {
-                                socket.send("espBanderolleConnect:trigger_action")
-                            },
                             espBougie: function() {
                                 socket.send("espBougie:turn_on_bougie")
                             },
@@ -265,13 +260,16 @@ struct RouteInfos {
                                     const buttonGroup = document.createElement('div');
                                     buttonGroup.className = 'button-group';
                                     
-                                    const actionButton = document.createElement('button');
-                                    actionButton.className = 'trigger-button';
-                                    actionButton.textContent = 'Trigger Action';
-                                    actionButton.disabled = !isConnected;
-                                    actionButton.onclick = () => triggerAction(route);
-                                
-                                    buttonGroup.appendChild(actionButton);
+                                    if(callbacks[route]) {
+                                        const actionButton = document.createElement('button');
+                                        actionButton.className = 'trigger-button';
+                                        actionButton.textContent = 'Trigger Action/Next Step';
+                                        actionButton.disabled = !isConnected;
+                                        actionButton.onclick = () => triggerAction(route);
+                                    
+                                        buttonGroup.appendChild(actionButton);
+                                    }
+
                                 
                                     if (route === "ipadRoberto") {
                                         const actionButtonPrevious = document.createElement('button');
@@ -315,6 +313,7 @@ struct RouteInfos {
                                         actionButtonVideoBougie.disabled = !isConnected;
                                         actionButtonVideoBougie.onclick = () => triggerAction('triggerVideoBougie');
                                         buttonGroup.appendChild(actionButtonVideoBougie);
+
                                     }
                                     
                                     deviceCard.appendChild(deviceName);
