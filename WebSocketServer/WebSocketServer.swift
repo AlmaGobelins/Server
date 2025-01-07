@@ -201,6 +201,12 @@ struct RouteInfos {
                                 socket.send("ipadRoberto:play_video_bougie")
                             },
                             ipadAlma: function() {
+                                socket.send("ipadAlma:next_step")
+                            },
+                            previousStepAlma: function() {
+                                socket.send("ipadAlma:previous_step")
+                            },
+                            launchVideoAlma: function() {
                                 socket.send("ipadAlma:step_6_finished")
                             },
                             triggerWater: function () {
@@ -226,6 +232,9 @@ struct RouteInfos {
                             },
                             turnOnWhite: function () {
                                 socket.send("espLeds:autel_4")
+                            },
+                            triggerVideoYAlma: function() {
+                                socket.send("ipadAlma:trigger_video_correct")
                             },
                         };
                         
@@ -375,6 +384,27 @@ struct RouteInfos {
                                     }
             
                                     if (route === "ipadAlma") {
+                                        const actionPreviousStep = document.createElement('button');
+                                        actionPreviousStep.className = 'trigger-button';
+                                        actionPreviousStep.textContent = 'Previous Step';
+                                        actionPreviousStep.disabled = !isConnected;
+                                        actionPreviousStep.onclick = () => triggerAction('previousStepAlma');
+                                        buttonGroup.appendChild(actionPreviousStep);
+                                        
+                                        const buttonLaunchVideoAlma = document.createElement('button');
+                                        buttonLaunchVideoAlma.className = 'trigger-button';
+                                        buttonLaunchVideoAlma.textContent = 'Launch Video Alma';
+                                        buttonLaunchVideoAlma.disabled = !isConnected;
+                                        buttonLaunchVideoAlma.onclick = () => triggerAction('launchVideoAlma');
+                                        buttonGroup.appendChild(buttonLaunchVideoAlma);    
+            
+                                        const actionButtonVideoYAlma = document.createElement('button');
+                                        actionButtonVideoYAlma.className = 'trigger-button';
+                                        actionButtonVideoYAlma.textContent = 'Trigger Video Correct';
+                                        actionButtonVideoYAlma.disabled = !isConnected;
+                                        actionButtonVideoYAlma.onclick = () => triggerAction('triggerVideoYAlma');
+                                        buttonGroup.appendChild(actionButtonVideoYAlma);
+            
                                         const actionButtonWater = document.createElement('button');
                                         actionButtonWater.className = 'trigger-button';
                                         actionButtonWater.textContent = 'Trigger leds water';
