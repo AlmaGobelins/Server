@@ -210,16 +210,17 @@ struct RouteInfos {
                                 socket.send("ipadAlma:step_6_finished")
                             },
                             triggerWater: function () {
-                                socket.send("espLeds:water")
+                                socket.send("espLeds:eau")
                             },
                             triggerEarth: function () {
-                                socket.send("espLeds:earth")
+                                socket.send("espLeds:terre")
                             },
+--------------------------- // TO DO : IMPLEMENTER BOUTON FIN COMME TERRE // ------------------------------
                             triggerFire: function () {
-                                socket.send("espLeds:fire")
+                                socket.send("espLeds:feu")
                             },
                             triggerEnd: function () {
-                                socket.send("espLeds:end")
+                                socket.send("espLeds:air")
                             },
                             turnOnBlue: function () {
                                 socket.send("espLeds:autel_1")
