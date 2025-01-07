@@ -84,10 +84,7 @@ struct RouteInfos {
             }
         )
     }
-    
-    /*
-     * Trouver un moyen d'avoir une seule callback côté ipadRoberto: par exemple incrementer une variable qui trigger les actions au changement (onChange(of: step))
-     */
+
     func serveStaticHTML() {
         server["/"] = { request in
             let htmlContent = """
@@ -169,7 +166,10 @@ struct RouteInfos {
                             'espFire',
                             'ipadRoberto',
                             'phoneFire',
-                            'ipadAlma'
+                            'ipadAlma', 
+                            'espAutel1',
+                            'espAutel2',
+                            'espLeds'
                         ];
                         
                         const callbacks = {
@@ -202,6 +202,18 @@ struct RouteInfos {
                             },
                             ipadAlma: function() {
                                 socket.send("ipadAlma:step_6_finished")
+                            },
+                            turnOnBlue: function () {
+                                socket.send("espLeds:autel_1")
+                            },
+                            turnOnGreen: function () {
+                                socket.send("espLeds:autel_2")
+                            },
+                            turnOnRed: function () {
+                                socket.send("espLeds:autel_3")
+                            },
+                            turnOnWhite: function () {
+                                socket.send("espLeds:autel_4")
                             },
                         };
                         
@@ -318,6 +330,36 @@ struct RouteInfos {
                                         actionButtonVideoBougie.onclick = () => triggerAction('triggerVideoBougie');
                                         buttonGroup.appendChild(actionButtonVideoBougie);
 
+                                    }
+            
+                                    if (route === "espLeds") {
+                                        const actionButtonBlue = document.createElement('button');
+                                        actionButtonBlue.className = 'trigger-button';
+                                        actionButtonBlue.textContent = 'Trigger leds blue';
+                                        actionButtonBlue.disabled = !isConnected;
+                                        actionButtonBlue.onclick = () => triggerAction('turnOnBlue');
+                                        buttonGroup.appendChild(actionButtonBlue);
+                                        
+                                        const actionButtonGreen = document.createElement('button');
+                                        actionButtonGreen.className = 'trigger-button';
+                                        actionButtonGreen.textContent = 'Trigger leds green';
+                                        actionButtonGreen.disabled = !isConnected;
+                                        actionButtonGreen.onclick = () => triggerAction('turnOnGreen');
+                                        buttonGroup.appendChild(actionButtonGreen);   
+            
+                                        const actionButtonRed = document.createElement('button');
+                                        actionButtonRed.className = 'trigger-button';
+                                        actionButtonRed.textContent = 'Trigger leds red';
+                                        actionButtonRed.disabled = !isConnected;
+                                        actionButtonRed.onclick = () => triggerAction('turnOnRed');
+                                        buttonGroup.appendChild(actionButtonRed);
+            
+                                        const actionButtonWhite = document.createElement('button');
+                                        actionButtonWhite.className = 'trigger-button';
+                                        actionButtonWhite.textContent = 'Trigger leds white';
+                                        actionButtonWhite.disabled = !isConnected;
+                                        actionButtonWhite.onclick = () => triggerAction('turnOnWhite');
+                                        buttonGroup.appendChild(actionButtonWhite);
                                     }
                                     
                                     deviceCard.appendChild(deviceName);

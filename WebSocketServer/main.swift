@@ -58,7 +58,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "ipadAlma", text
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espPapel1", textCode: { session, receivedText in
-    print("Esp Banderolle connecté ---> \(receivedText)")
+    print("espPapel1: \(receivedText)")
     if receivedText == "papel_1_both"{
         if let ipadSession = serverWS.getSession(forRoute: "ipadRoberto") {
             ipadSession.writeText(receivedText)
@@ -72,7 +72,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espPapel1", tex
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espPapel2", textCode: { session, receivedText in
-    print("Esp Banderolle connecté ---> \(receivedText)")
+    print("espPapel2: \(receivedText)")
     
     if receivedText == "papel_2_both"{
         if let ipadSession = serverWS.getSession(forRoute: "ipadRoberto") {
@@ -82,6 +82,39 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espPapel2", tex
         }
     }
     
+}, dataCode: { session, receivedData in
+    print("Esp Banderolle data received: \(receivedData)")
+}))
+
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espAutel1", textCode: { session, receivedText in
+    print("espAutel1: \(receivedText)")
+    if receivedText == "autel_1" || receivedText == "autel_2"{
+        if let ledsSession = serverWS.getSession(forRoute: "espLeds") {
+            ledsSession.writeText(receivedText)
+        } else {
+            session.writeText("Leds not connected")
+        }
+    }
+}, dataCode: { session, receivedData in
+    print("Esp Banderolle data received: \(receivedData)")
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espAutel2", textCode: { session, receivedText in
+    print("espAutel2: \(receivedText)")
+    if receivedText == "autel_3" || receivedText == "autel_4"{
+        if let ledsSession = serverWS.getSession(forRoute: "espLeds") {
+            ledsSession.writeText(receivedText)
+        } else {
+            session.writeText("Leds not connected")
+        }
+    }
+}, dataCode: { session, receivedData in
+    print("Esp Banderolle data received: \(receivedData)")
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espLeds", textCode: { session, receivedText in
+    print("espLeds: \(receivedText)")
 }, dataCode: { session, receivedData in
     print("Esp Banderolle data received: \(receivedData)")
 }))
