@@ -203,6 +203,18 @@ struct RouteInfos {
                             ipadAlma: function() {
                                 socket.send("ipadAlma:step_6_finished")
                             },
+                            triggerWater: function () {
+                                socket.send("espLeds:water")
+                            },
+                            triggerEarth: function () {
+                                socket.send("espLeds:earth")
+                            },
+                            triggerFire: function () {
+                                socket.send("espLeds:fire")
+                            },
+                            triggerEnd: function () {
+                                socket.send("espLeds:end")
+                            },
                             turnOnBlue: function () {
                                 socket.send("espLeds:autel_1")
                             },
@@ -361,6 +373,37 @@ struct RouteInfos {
                                         actionButtonWhite.onclick = () => triggerAction('turnOnWhite');
                                         buttonGroup.appendChild(actionButtonWhite);
                                     }
+            
+                                    if (route === "ipadAlma") {
+                                        const actionButtonWater = document.createElement('button');
+                                        actionButtonWater.className = 'trigger-button';
+                                        actionButtonWater.textContent = 'Trigger leds water';
+                                        actionButtonWater.disabled = !isConnected;
+                                        actionButtonWater.onclick = () => triggerAction('triggerWater');
+                                        buttonGroup.appendChild(actionButtonWater);
+                                        
+                                        const actionButtonEarth = document.createElement('button');
+                                        actionButtonEarth.className = 'trigger-button';
+                                        actionButtonEarth.textContent = 'Trigger leds earth';
+                                        actionButtonEarth.disabled = !isConnected;
+                                        actionButtonEarth.onclick = () => triggerAction('triggerEarth');
+                                        buttonGroup.appendChild(actionButtonEarth);   
+            
+                                        const actionButtonFire = document.createElement('button');
+                                        actionButtonFire.className = 'trigger-button';
+                                        actionButtonFire.textContent = 'Trigger leds fire';
+                                        actionButtonFire.disabled = !isConnected;
+                                        actionButtonFire.onclick = () => triggerAction('triggerFire');
+                                        buttonGroup.appendChild(actionButtonFire);
+            
+                                        const actionButtonEnd = document.createElement('button');
+                                        actionButtonEnd.className = 'trigger-button';
+                                        actionButtonEnd.textContent = 'Trigger leds end';
+                                        actionButtonEnd.disabled = !isConnected;
+                                        actionButtonEnd.onclick = () => triggerAction('triggerEnd');
+                                        buttonGroup.appendChild(actionButtonEnd);
+                                    }            
+                                
                                     
                                     deviceCard.appendChild(deviceName);
                                     deviceCard.appendChild(statusElement);

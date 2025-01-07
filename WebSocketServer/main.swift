@@ -53,6 +53,11 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "ipadRoberto", t
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "ipadAlma", textCode: { session, receivedText in
     print("receivedText : \(receivedText)")
+    if let ledsSession = serverWS.getSession(forRoute: "espLeds") {
+        ledsSession.writeText(receivedText)
+    } else {
+        session.writeText("Leds not connected")
+    }
 }, dataCode: { session, receivedData in
     print("Ipad data received: \(receivedData)")
 }))
