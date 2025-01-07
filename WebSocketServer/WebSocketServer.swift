@@ -169,6 +169,7 @@ struct RouteInfos {
                             'espFire',
                             'ipadRoberto',
                             'phoneFire',
+                            'ipadAlma'
                         ];
                         
                         const callbacks = {
@@ -198,6 +199,9 @@ struct RouteInfos {
                             },
                             triggerVideoBougie: function() {
                                 socket.send("ipadRoberto:play_video_bougie")
+                            },
+                            ipadAlma: function() {
+                                socket.send("ipadAlma:step_6_finished")
                             },
                         };
                         

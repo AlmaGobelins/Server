@@ -41,13 +41,24 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espBougie", tex
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "ipadRoberto", textCode: { session, receivedText in
     print("receivedText : \(receivedText)")
+    
+    if let ipadAlma = serverWS.getSession(forRoute: "ipadAlma") {
+        if receivedText == "step_6_finished"{
+            ipadAlma.writeText(receivedText)
+        }
+    }
+}, dataCode: { session, receivedData in
+    print("Ipad data received: \(receivedData)")
+}))
+
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "ipadAlma", textCode: { session, receivedText in
+    print("receivedText : \(receivedText)")
 }, dataCode: { session, receivedData in
     print("Ipad data received: \(receivedData)")
 }))
 
 serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espPapel1", textCode: { session, receivedText in
     print("Esp Banderolle connecté ---> \(receivedText)")
-    
     if receivedText == "papel_1_both"{
         if let ipadSession = serverWS.getSession(forRoute: "ipadRoberto") {
             ipadSession.writeText(receivedText)
