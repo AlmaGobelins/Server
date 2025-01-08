@@ -23,31 +23,42 @@ struct RouteInfos {
     private let pingInterval: TimeInterval = 5.0
     private let pingTimeout: TimeInterval = 10.0
     
+    private let sessionsQueue = DispatchQueue(label: "fr.mathieu-dubart.sessionsQueue", attributes: .concurrent)
+    
     func setupWithRoutesInfos(routeInfos: RouteInfos) {
         server["/" + routeInfos.routeName] = websocket(
             text: { session, text in
                 if text == "pong" {
-                    self.sessions[routeInfos.routeName]?.lastPongDate = Date()
-                    self.sessions[routeInfos.routeName]?.isConnected = true
-                    print("Received pong from route: \(routeInfos.routeName)")
+                    self.sessionsQueue.async(flags: .barrier) {
+                        if var sessionInfo = self.sessions[routeInfos.routeName] {
+                            sessionInfo.lastPongDate = Date()
+                            sessionInfo.isConnected = true
+                            self.sessions[routeInfos.routeName] = sessionInfo
+                        } else {
+                            print("No session found for route: \(routeInfos.routeName)")
+                        }
+                    }
                 } else {
                     routeInfos.textCode(session, text)
                 }
             },
             binary: { session, binary in
-                // Ajout ou mise à jour de la session dans le dictionnaire
-                self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
+                self.sessionsQueue.async(flags: .barrier) {
+                    self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
+                }
                 routeInfos.dataCode(session, Data(binary))
             },
             connected: { session in
                 print("Client connected to route: /\(routeInfos.routeName)")
-                // Ajouter la session à la collection des sessions
-                self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
+                self.sessionsQueue.async(flags: .barrier) {
+                    self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
+                }
             },
             disconnected: { session in
                 print("Client disconnected from route: /\(routeInfos.routeName)")
-                // Marquer la session comme déconnectée
-                self.sessions[routeInfos.routeName]?.isConnected = false
+                self.sessionsQueue.async(flags: .barrier) {
+                    self.sessions[routeInfos.routeName]?.isConnected = false
+                }
             }
         )
     }
@@ -56,24 +67,26 @@ struct RouteInfos {
         server["/dashboard"] = websocket(
             text: { session, text in
                 // Traiter les messages du dashboard
-                if let data = text.data(using: .utf8),
-                   let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let type = json["type"] as? String {
-                    
-                    if type == "get_status" {
-                        var statusDict: [String: [Any]] = [:]
-                        for (routeName, sessionInfo) in self.sessions {
-                            statusDict[routeName] = [sessionInfo.isConnected, sessionInfo.callbackName]
-                        }
+                self.sessionsQueue.sync {
+                    if let data = text.data(using: .utf8),
+                       let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+                       let type = json["type"] as? String {
                         
-                        if let jsonData = try? JSONSerialization.data(withJSONObject: statusDict, options: []),
-                           let jsonString = String(data: jsonData, encoding: .utf8) {
-                            session.writeText(jsonString)
+                        if type == "get_status" {
+                            var statusDict: [String: [Any]] = [:]
+                            for (routeName, sessionInfo) in self.sessions {
+                                statusDict[routeName] = [sessionInfo.isConnected, sessionInfo.callbackName]
+                            }
+                            
+                            if let jsonData = try? JSONSerialization.data(withJSONObject: statusDict, options: []),
+                               let jsonString = String(data: jsonData, encoding: .utf8) {
+                                session.writeText(jsonString)
+                            }
                         }
+                    } else {
+                        print("Received non-JSON message: \(text)")
+                        self.dispatchMessage(text)
                     }
-                } else {
-                    print("Received non-JSON message: \(text)")
-                    self.dispatchMessage(text)
                 }
             },
             connected: { session in
@@ -84,7 +97,19 @@ struct RouteInfos {
             }
         )
     }
-
+    
+    private func dispatchMessage(_ message: String) {
+        var newMessage = message
+        self.sessionsQueue.sync {
+            for (routeName, sessionInfo) in self.sessions {
+                if newMessage.trimmingCharacters(in: .whitespacesAndNewlines).contains(routeName) {
+                    newMessage.trimPrefix("\(routeName):")
+                    sessionInfo.session.writeText(newMessage)
+                }
+            }
+        }
+    }
+    
     func serveStaticHTML() {
         server["/"] = { request in
             let htmlContent = """
@@ -194,12 +219,6 @@ struct RouteInfos {
                             triggerVideoN: function() {
                                 socket.send("ipadRoberto:trigger_video_incorrect")
                             },
-                            triggerSugar: function() {
-                                socket.send("ipadRoberto:trigger_sugar")
-                            },
-                            triggerVideoBougie: function() {
-                                socket.send("ipadRoberto:play_video_bougie")
-                            },
                             ipadAlma: function() {
                                 socket.send("ipadAlma:next_step")
                             },
@@ -211,16 +230,23 @@ struct RouteInfos {
                             },
                             triggerWater: function () {
                                 socket.send("espLeds:eau")
+                                socket.send("ipadAlma:eau")
                             },
                             triggerEarth: function () {
                                 socket.send("espLeds:terre")
+                                socket.send("ipadAlma:terre")
                             },
---------------------------- // TO DO : IMPLEMENTER BOUTON FIN COMME TERRE // ------------------------------
+                            triggerEnd: function () {
+                                socket.send("espLeds:fin")
+                                socket.send("ipadAlma:fin")
+                            },
                             triggerFire: function () {
                                 socket.send("espLeds:feu")
+                                socket.send("ipadAlma:feu")
                             },
                             triggerEnd: function () {
                                 socket.send("espLeds:air")
+                                socket.send("ipadAlma:air")
                             },
                             turnOnBlue: function () {
                                 socket.send("espLeds:autel_1")
@@ -237,6 +263,7 @@ struct RouteInfos {
                             triggerVideoYAlma: function() {
                                 socket.send("ipadAlma:trigger_video_correct")
                             },
+                            resetLeds: function() { socket.send("espLeds:reset_leds") }
                         };
                         
                         function triggerAction(callbackName) {
@@ -307,7 +334,7 @@ struct RouteInfos {
                                     
                                         buttonGroup.appendChild(actionButton);
                                     }
-
+            
                                 
                                     if (route === "ipadRoberto") {
                                         const actionButtonPrevious = document.createElement('button');
@@ -338,23 +365,16 @@ struct RouteInfos {
                                         actionButtonVideoN.onclick = () => triggerAction('triggerVideoN');
                                         buttonGroup.appendChild(actionButtonVideoN);
             
-                                        const actionButtonSugar = document.createElement('button');
-                                        actionButtonSugar.className = 'trigger-button';
-                                        actionButtonSugar.textContent = 'Trigger Sugar Video';
-                                        actionButtonSugar.disabled = !isConnected;
-                                        actionButtonSugar.onclick = () => triggerAction('triggerSugar');
-                                        buttonGroup.appendChild(actionButtonSugar);
-            
-                                        const actionButtonVideoBougie = document.createElement('button');
-                                        actionButtonVideoBougie.className = 'trigger-button';
-                                        actionButtonVideoBougie.textContent = 'Trigger Video Bougie';
-                                        actionButtonVideoBougie.disabled = !isConnected;
-                                        actionButtonVideoBougie.onclick = () => triggerAction('triggerVideoBougie');
-                                        buttonGroup.appendChild(actionButtonVideoBougie);
-
                                     }
             
                                     if (route === "espLeds") {
+                                        const actionResetLeds = document.createElement('button');
+                                        actionResetLeds.className = 'trigger-button';
+                                        actionResetLeds.textContent = 'Trigger reset leds';
+                                        actionResetLeds.disabled = !isConnected;
+                                        actionResetLeds.onclick = () => triggerAction('resetLeds');
+                                        buttonGroup.appendChild(actionResetLeds);
+            
                                         const actionButtonBlue = document.createElement('button');
                                         actionButtonBlue.className = 'trigger-button';
                                         actionButtonBlue.textContent = 'Trigger leds blue';
@@ -453,16 +473,6 @@ struct RouteInfos {
         }
     }
     
-    private func dispatchMessage(_ message: String) {
-        var newMessage = message
-        for (routeName, sessionInfo) in self.sessions {
-            if newMessage.trimmingCharacters(in: .whitespacesAndNewlines).contains(routeName) {
-                newMessage.trimPrefix("\(routeName):")
-                sessionInfo.session.writeText(newMessage)
-            }
-        }
-    }
-    
     func start() {
         do {
             print("🔄 Starting server...")
@@ -485,29 +495,33 @@ struct RouteInfos {
     
     private func startPingRoutine() {
         Timer.scheduledTimer(withTimeInterval: pingInterval, repeats: true) { _ in
-            for (routeName, sessionInfo) in self.sessions {
-                guard sessionInfo.isConnected else { continue }
-                
-                // Envoi du ping
-                sessionInfo.session.writeText("ping")
-                print("Ping envoyé à \(routeName)")
-
+            self.sessionsQueue.async(flags: .barrier) {
+                for (routeName, sessionInfo) in self.sessions {
+                    guard sessionInfo.isConnected else { continue }
+                    
+                    // Envoi du ping
+                    sessionInfo.session.writeText("ping")
+                    
                     if Date().timeIntervalSince(sessionInfo.lastPongDate) > self.pingTimeout {
-                    // Si aucun pong reçu dans le délai, marquer comme non connecté
-                    self.sessions[routeName]?.isConnected = false
-                    sessionInfo.session.socket.close()
-                    print("No pong received from \(routeName), marking as disconnected.")
+                        // Si aucun pong reçu dans le délai, marquer comme non connecté
+                        self.sessions[routeName]?.isConnected = false
+                        sessionInfo.session.socket.close()
+                        print("No pong received from \(routeName), marking as disconnected.")
+                    }
                 }
             }
         }
     }
     
     func getSession(forRoute routeName: String) -> WebSocketSession? {
-        return sessions[routeName]?.session
+        return sessionsQueue.sync {
+            return sessions[routeName]?.session
+        }
     }
     
-    
     func isDeviceConnected(forRoute routeName: String) -> Bool {
-        return sessions[routeName]?.isConnected ?? false
+        return sessionsQueue.sync {
+            return sessions[routeName]?.isConnected ?? false
+        }
     }
 }
