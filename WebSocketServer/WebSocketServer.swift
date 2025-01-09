@@ -267,7 +267,8 @@ struct RouteInfos {
                             triggerVideoYAlma: function() {
                                 socket.send("ipadAlma:trigger_video_correct")
                             },
-                            resetLeds: function() { socket.send("espLeds:reset_leds") }
+                            resetLeds: function() { socket.send("espLeds:reset_leds") },
+                            phoneMix: function() { socket.send("phoneMix:mix") }
                         };
                         
                         function triggerAction(callbackName) {
