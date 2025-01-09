@@ -57,7 +57,10 @@ struct RouteInfos {
             disconnected: { session in
                 print("Client disconnected from route: /\(routeInfos.routeName)")
                 self.sessionsQueue.async(flags: .barrier) {
-                    self.sessions[routeInfos.routeName]?.isConnected = false
+                    if let route = self.sessions.first(where: { $0.value.session == session })?.key {
+                        self.sessions.removeValue(forKey: route)
+                        print("Session for route \(route) has been removed.")
+                    }
                 }
             }
         )
@@ -503,10 +506,9 @@ struct RouteInfos {
                     sessionInfo.session.writeText("ping")
                     
                     if Date().timeIntervalSince(sessionInfo.lastPongDate) > self.pingTimeout {
-                        // Si aucun pong reçu dans le délai, marquer comme non connecté
-                        self.sessions[routeName]?.isConnected = false
-                        sessionInfo.session.socket.close()
                         print("No pong received from \(routeName), marking as disconnected.")
+                        sessionInfo.session.socket.close() // Fermer la socket
+                        self.sessions.removeValue(forKey: routeName) // Nettoyer la session
                     }
                 }
             }
@@ -524,4 +526,5 @@ struct RouteInfos {
             return sessions[routeName]?.isConnected ?? false
         }
     }
+
 }
