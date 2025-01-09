@@ -481,7 +481,6 @@ struct RouteInfos {
             print("🔄 Starting server...")
             serveStaticHTML()
             
-            // Ajoutez ces options
             server.middleware.append { request in
                 print("📝 Incoming request: \(request.method) \(request.path)")
                 return nil
@@ -491,6 +490,18 @@ struct RouteInfos {
             
             print("✅ Server started successfully on port \(try server.port())")
             startPingRoutine()
+            
+            // Gestion d'arrêt propre
+            let signalSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
+            signal(SIGINT, SIG_IGN)
+            signalSource.setEventHandler {
+                print("\n⚠️ Server stopping...")
+                self.disconnectAllSessions()
+                signalSource.cancel()
+                exit(0)
+            }
+            signalSource.resume()
+            
         } catch {
             print("❌ Server failed to start: \(error.localizedDescription)")
         }
@@ -526,5 +537,17 @@ struct RouteInfos {
             return sessions[routeName]?.isConnected ?? false
         }
     }
+    
+    func disconnectAllSessions() {
+        self.sessionsQueue.async(flags: .barrier) {
+            for (routeName, sessionInfo) in self.sessions {
+                print("Disconnecting session for route: \(routeName)")
+                sessionInfo.session.socket.close()
+            }
+            self.sessions.removeAll()
+            print("All sessions have been disconnected.")
+        }
+    }
+
 
 }
