@@ -20,20 +20,28 @@ struct RouteInfos {
     
     // Dictionnaire des sessions et états
     var sessions: [String: (session: WebSocketSession, isConnected: Bool, lastPongDate: Date, callbackName: String)] = [:]
-    private let pingInterval: TimeInterval = 5.0
-    private let pingTimeout: TimeInterval = 10.0
+    
+    private let pingInterval: TimeInterval = 10.0
+    private let pingTimeout: TimeInterval = 30.0
+    
+    private var missedPingCounts: [String: Int] = [:]
+    private let maxMissedPings = 3
     
     private let sessionsQueue = DispatchQueue(label: "fr.mathieu-dubart.sessionsQueue", attributes: .concurrent)
     
     func setupWithRoutesInfos(routeInfos: RouteInfos) {
         server["/" + routeInfos.routeName] = websocket(
             text: { session, text in
+                // Réception d'un message texte
                 if text == "pong" {
                     self.sessionsQueue.async(flags: .barrier) {
                         if var sessionInfo = self.sessions[routeInfos.routeName] {
                             sessionInfo.lastPongDate = Date()
                             sessionInfo.isConnected = true
                             self.sessions[routeInfos.routeName] = sessionInfo
+                            
+                            // Réinitialiser le compteur de pings manqués (optionnel)
+                            self.missedPingCounts[routeInfos.routeName] = 0
                         } else {
                             print("No session found for route: \(routeInfos.routeName)")
                         }
@@ -43,15 +51,30 @@ struct RouteInfos {
                 }
             },
             binary: { session, binary in
+                // Réception d'un message binaire
                 self.sessionsQueue.async(flags: .barrier) {
-                    self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
+                    self.sessions[routeInfos.routeName] = (
+                        session: session,
+                        isConnected: true,
+                        lastPongDate: Date(),
+                        callbackName: routeInfos.routeName
+                    )
+                    // Réinitialiser le compteur de pings manqués
+                    self.missedPingCounts[routeInfos.routeName] = 0
                 }
                 routeInfos.dataCode(session, Data(binary))
             },
             connected: { session in
                 print("Client connected to route: /\(routeInfos.routeName)")
                 self.sessionsQueue.async(flags: .barrier) {
-                    self.sessions[routeInfos.routeName] = (session: session, isConnected: true, lastPongDate: Date(), callbackName: routeInfos.routeName)
+                    self.sessions[routeInfos.routeName] = (
+                        session: session,
+                        isConnected: true,
+                        lastPongDate: Date(),
+                        callbackName: routeInfos.routeName
+                    )
+                    // Créer un compteur de pings manqués initial à 0
+                    self.missedPingCounts[routeInfos.routeName] = 0
                 }
             },
             disconnected: { session in
@@ -59,6 +82,7 @@ struct RouteInfos {
                 self.sessionsQueue.async(flags: .barrier) {
                     if let route = self.sessions.first(where: { $0.value.session == session })?.key {
                         self.sessions.removeValue(forKey: route)
+                        self.missedPingCounts.removeValue(forKey: route)
                         print("Session for route \(route) has been removed.")
                     }
                 }
@@ -78,7 +102,10 @@ struct RouteInfos {
                         if type == "get_status" {
                             var statusDict: [String: [Any]] = [:]
                             for (routeName, sessionInfo) in self.sessions {
-                                statusDict[routeName] = [sessionInfo.isConnected, sessionInfo.callbackName]
+                                statusDict[routeName] = [
+                                    sessionInfo.isConnected,
+                                    sessionInfo.callbackName
+                                ]
                             }
                             
                             if let jsonData = try? JSONSerialization.data(withJSONObject: statusDict, options: []),
@@ -194,7 +221,7 @@ struct RouteInfos {
                             'espFire',
                             'ipadRoberto',
                             'phoneFire',
-                            'ipadAlma', 
+                            'ipadAlma',
                             'espAutel1',
                             'espAutel2',
                             'espLeds',
@@ -518,10 +545,31 @@ struct RouteInfos {
                     // Envoi du ping
                     sessionInfo.session.writeText("ping")
                     
-                    if Date().timeIntervalSince(sessionInfo.lastPongDate) > self.pingTimeout {
-                        print("No pong received from \(routeName), marking as disconnected.")
-                        sessionInfo.session.socket.close() // Fermer la socket
-                        self.sessions.removeValue(forKey: routeName) // Nettoyer la session
+                    let timeSinceLastPong = Date().timeIntervalSince(sessionInfo.lastPongDate)
+                    
+                    // --- Patch : compteur de pings manqués
+                    //             Au-delà de 'pingTimeout', on incrémente
+                    //             Puis on déconnecte seulement au bout de X (maxMissedPings) échecs.
+                    
+                    if self.missedPingCounts[routeName] == nil {
+                        self.missedPingCounts[routeName] = 0
+                    }
+                    
+                    if timeSinceLastPong > self.pingTimeout {
+                        // On incrémente
+                        self.missedPingCounts[routeName]! += 1
+                        
+                        if self.missedPingCounts[routeName]! >= self.maxMissedPings {
+                            print("No pong received from \(routeName) for \(self.missedPingCounts[routeName]!) times, closing.")
+                            sessionInfo.session.socket.close()
+                            self.sessions.removeValue(forKey: routeName)
+                            self.missedPingCounts.removeValue(forKey: routeName)
+                        } else {
+                            print("No pong from \(routeName) => missed \(self.missedPingCounts[routeName]!) times.")
+                        }
+                    } else {
+                        // Le pong est arrivé à temps => reset le compteur
+                        self.missedPingCounts[routeName] = 0
                     }
                 }
             }
@@ -547,9 +595,8 @@ struct RouteInfos {
                 sessionInfo.session.socket.close()
             }
             self.sessions.removeAll()
+            self.missedPingCounts.removeAll()
             print("All sessions have been disconnected.")
         }
     }
-
-
 }
