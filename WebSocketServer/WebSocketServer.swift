@@ -197,7 +197,8 @@ struct RouteInfos {
                             'ipadAlma', 
                             'espAutel1',
                             'espAutel2',
-                            'espLeds'
+                            'espLeds',
+                            'phoneMix'
                         ];
                         
                         const callbacks = {
