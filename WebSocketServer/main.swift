@@ -108,7 +108,7 @@ serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espAutel1", tex
     print("Esp Banderolle data received: \(receivedData)")
 }))
 
-serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espAutel2", textCode: { session, receivedText in
+serverWS.setupWithRoutesInfos(routeInfos: RouteInfos(routeName: "espAutel-20", textCode: { session, receivedText in
     
     if receivedText == "autel_3" || receivedText == "autel_4"{
         if let ledsSession = serverWS.getSession(forRoute: "espLeds") {
