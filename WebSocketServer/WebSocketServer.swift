@@ -297,8 +297,14 @@ class WebSockerServer {
                         espBougie: function() {
                             socket.send("espBougie:turn_on_bougie")
                         },
+                        resetBougie: function() {
+                            socket.send("espBougie:turn_off_bougie")
+                        },
                         espFire: function() {
                             socket.send("espFire:turn_on_fire")
+                        },
+                        resetFire: function() {
+                            socket.send("espFire:turn_off_fire")
                         },
                         ipadRoberto: function() {
                             socket.send("ipadRoberto:next_step")
@@ -345,16 +351,19 @@ class WebSockerServer {
                             socket.send("ipadAlma:air")
                         },
                         turnOnBlue: function () {
-                            socket.send("espLeds:autel_1")
+                            socket.send("espLeds:bypass_autel_1")
                         },
                         turnOnGreen: function () {
-                            socket.send("espLeds:autel_2")
+                            socket.send("espLeds:bypass_autel_2")
                         },
                         turnOnRed: function () {
-                            socket.send("espLeds:autel_3")
+                            socket.send("espLeds:bypass_autel_3")
                         },
                         turnOnWhite: function () {
-                            socket.send("espLeds:autel_4")
+                            socket.send("espLeds:bypass_autel_4")
+                        },
+                        turnOnMulti: function () {
+                            socket.send("espLeds:bypass_autel_5")
                         },
                         triggerVideoYAlma: function() {
                             socket.send("ipadAlma:trigger_video_correct")
@@ -429,6 +438,25 @@ class WebSockerServer {
                                 actionButton.onclick = () => triggerAction(route);
                                 buttonGroup.appendChild(actionButton);
                             }
+            
+                            if (route === "espBougie") {
+                                const actionButtonResetBougie = document.createElement('button');
+                                actionButtonResetBougie.className = 'trigger-button';
+                                actionButtonResetBougie.textContent = 'Trigger Reset bougie';
+                                actionButtonResetBougie.disabled = !isConnected;
+                                actionButtonResetBougie.onclick = () => triggerAction('resetBougie');
+                                buttonGroup.appendChild(actionButtonResetBougie);
+                            }
+            
+                            if (route === "espFire") {
+                                const actionButtonResetFire = document.createElement('button');
+                                actionButtonResetFire.className = 'trigger-button';
+                                actionButtonResetFire.textContent = 'Trigger Reset Fire';
+                                actionButtonResetFire.disabled = !isConnected;
+                                actionButtonResetFire.onclick = () => triggerAction('resetFire');
+                                buttonGroup.appendChild(actionButtonResetFire);
+                    		}
+            
                             
                             if (route === "ipadRoberto") {
                                 const actionButtonPrevious = document.createElement('button');
@@ -495,6 +523,13 @@ class WebSockerServer {
                                 actionButtonWhite.disabled = !isConnected;
                                 actionButtonWhite.onclick = () => triggerAction('turnOnWhite');
                                 buttonGroup.appendChild(actionButtonWhite);
+            
+                                const actionButtonMulti = document.createElement('button');
+                                actionButtonMulti.className = 'trigger-button';
+                                actionButtonMulti.textContent = 'Trigger leds multi';
+                                actionButtonMulti.disabled = !isConnected;
+                                actionButtonMulti.onclick = () => triggerAction('turnOnMulti');
+                                buttonGroup.appendChild(actionButtonMulti);
                             }
                             
                             if (route === "ipadAlma") {
